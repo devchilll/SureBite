@@ -1,7 +1,12 @@
-# Xcode
+# Xcode User Data (per-user settings, should not be shared)
 .DS_Store
+xcuserdata/
 *.xcuserstate
 *.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+**/project.xcworkspace/
+
+# Build artifacts
 DerivedData/
 build/
 *.pbxuser
@@ -13,16 +18,16 @@ build/
 *.perspectivev3
 !default.perspectivev3
 
-# API Keys & Secrets
-Secrets.swift
+# API Keys & Secrets (IMPORTANT: keep your API key private!)
+**/Secrets.swift
 
 # Swift Package Manager
 .swiftpm/
 .build/
+Package.resolved
 
 # CocoaPods
 Pods/
-*.xcworkspace
 
 # Carthage
 Carthage/Build/
@@ -33,8 +38,15 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
-# Other
-*.log
+# Archives & Binaries
 *.ipa
 *.dSYM.zip
 *.dSYM
+*.xcarchive
+
+# Logs
+*.log
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
