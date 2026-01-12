@@ -1,0 +1,138 @@
+This Product Requirements Document (PRD) outlines the Minimum Viable Product (MVP) for **"SafeBite"** (working title), an iOS application designed to mitigate dining anxiety for individuals with food allergies and dietary restrictions.
+
+This document is actionable for developers and designers, focusing on speed-to-market, cost efficiency, and safety.
+
+---
+
+# Product Requirements Document (PRD): SafeBite MVP
+
+## 1. Executive Summary
+
+**SafeBite** is a "decision support tool" that helps people with dietary restrictions read restaurant menus. Unlike generic translation apps, SafeBite filters menu items based on a user's biological profile, highlighting risks (Red/Yellow/Green) and translating ingredients into medical context rather than just literal text.
+
+* **Primary Goal:** Reduce "Time-to-Safety" for diners.
+* **Target Audience:** Travelers with allergies, Celiacs, and strict dietary adherents (Vegan/Halal).
+* **Platform:** iOS (Native)
+* **Success Metric:** User completes a scan and successfully identifies a "Safe" or "Avoid" item in < 10 seconds.
+
+---
+
+## 2. User Personas & Problem Statements
+
+| Persona | The Problem | The Solution |
+| --- | --- | --- |
+| **The Anxious Traveler** (Severe Nut Allergy) | "I'm in Thailand. I can't read the menu. Google Translate says 'Noodles', but does it have peanut oil? I'm scared to order." | App flags "High Risk: Peanuts common in this cuisine" and generates a Thai "Chef Card" to show the waiter. |
+| **The Lifestyle Diner** (Vegan + Gluten Free) | "I spend 20 minutes asking the waiter about every dish. My friends are annoyed. I feel like a burden." | App instantly filters the menu to show the 3 safe items, allowing them to order confidently without the social friction. |
+
+---
+
+## 3. Feature Specifications (The "How")
+
+### Feature 0: Technical Foundation (iOS Native)
+
+* **Requirement:** Built using **SwiftUI**.
+* **Rationale:** Native iOS offers the **Vision Framework** (free, on-device OCR) and superior camera handling compared to web apps (PWA).
+* **Constraint:** App size must be kept low (<50MB) to allow downloads on poor cellular data while traveling.
+
+### Feature 1: The Scanner (Input)
+
+* **UX Flow:**
+1. User taps large "Scan Menu" button.
+2. Camera opens (custom view, not default picker).
+3. **Feature:** "Live Text" detection boxes appear (powered by `VNRecognizeTextRequest`) to show the app is "reading."
+4. User taps capture shutter.
+5. **Critical Step:** App performs OCR *locally* on the device.
+6. **Data Payload:** Only the *extracted text strings* are sent to the LLM (API), not the image itself. This reduces data usage by 99% and speeds up processing.
+
+
+
+### Feature 2: The Medical Profile (Context)
+
+* **UX Flow:** Onboarding screen asks, "What do you need to avoid?"
+* **Data Structure:**
+* **Allergens (High Priority):** Peanuts, Tree Nuts, Shellfish, Dairy, Egg, Gluten, Soy, Sesame (The "Big 8").
+* **Diets (Lifestyle):** Vegan, Vegetarian, Keto, Halal, Kosher.
+* **Sensitivity Level:**
+* *Strict (Anaphylaxis):* "Flag cross-contamination risks."
+* *Preference:* "Ingredients only."
+
+
+
+
+* **Storage:** Store locally on device (UserDefaults/CoreData) or lightweight cloud (Supabase/Firebase) tied to device ID (no login required for MVP to lower friction).
+
+### Feature 3: The Intelligence Engine (Analysis)
+
+* **Model:** **Google Gemini 1.5 Flash** (via API).
+* **Why?** It is multimodal, extremely fast, and has a massive context window (can read a whole menu). Cost is negligible (<$0.01/scan).
+* **The System Prompt (Backend):**
+> "You are a toxicology and culinary expert. Analyze this menu text:.
+> Compare against User Profile:.
+> For EACH menu item, return a JSON object with:
+> * `dish_name`: (Original Name)
+> * `risk_level`: (SAFE | CAUTION | UNSAFE)
+> * `reasoning`: (Max 10 words, e.g., 'Contains Pesto -> Pine Nuts', 'Tempura -> Wheat Flour').
+> * `confidence`: (High/Low).
+> If a dish is ambiguous (e.g., 'House Sauce'), mark as CAUTION."
+> 
+> 
+
+
+
+### Feature 4: The Interface (Output)
+
+* **Design Choice:** Do *not* use AR overlay for the MVP (text jumping around is buggy). Use a **"Processed List View."**
+* **UI Layout:**
+* **Top:** "Safe Bets" (Green Section).
+* **Middle:** "Ask Staff" (Yellow Section).
+* **Bottom:** "Avoid" (Red Section - Dimmed/Greyed out).
+
+
+* **Interactions:** Tapping a dish expands a card showing the reasoning: *"Contains Soy Sauce (Wheat)"*.
+
+### Feature 5: The "Chef Card" (Liability Shield)
+
+* **Function:** A static button on the result screen: "Show to Waiter."
+* **Output:** Displays a pre-translated message in the local language (detected via GPS or menu language) based on the user's profile.
+* *Example:* (Thai) *"I have a life-threatening allergy to Peanuts and Shrimp. Please ensure my food is cooked in clean oil."*
+
+
+
+---
+
+## 4. Technical Architecture Diagram
+
+```mermaid
+graph TD
+    A[User iPhone Camera] -->|Vision Framework (Local)| B(Raw Text Extraction)
+    B -->|JSON Request + User Profile| C[Google Gemini 1.5 Flash API]
+    C -->|Analyze Ingredients & Risk| D
+    D -->|Parse Risk Levels| E[iPhone UI List View]
+    E -->|User Taps Item| F
+
+```
+
+## 5. Risk & Mitigation Strategies
+
+| Risk | Mitigation Strategy |
+| --- | --- |
+| **Hallucination** (AI says safe when unsafe) | **1.** System Prompt Instruction: "If unsure, mark CAUTION."<br>
+
+<br>**2.** Mandatory User Disclaimer: "This is a translation aid, not medical advice. Verify with staff." (Acceptance required on launch). |
+| **Latency** (Slow loading) | Use **Text-Only** transmission to LLM (KB vs MB). Use Gemini Flash (Optimized for speed). Show local "Processing..." skeleton loader. |
+| **No Internet** (Travelers) | **1.** Use iOS Vision to translate text locally (basic functionality).<br>
+
+<br>**2.** Cache the "Chef Card" translations so they work 100% offline. |
+
+## 6. MVP Success Metrics (KPIs)
+
+1. **Scan Success Rate:** % of photos that return a valid JSON response.
+2. **Edit Rate:** How often users manually correct their profile (indicates onboarding friction).
+3. **"Chef Card" Usage:** If users are tapping this button, they trust the app enough to use it in the real world (High value signal).
+
+## 7. Immediate Action Plan
+
+1. **Design (Day 1-2):** Sketch the "List View" result screen. Don't worry about the logo.
+2. **Tech (Day 3-5):** Build a simple SwiftUI view that opens the camera and prints the OCR text to the console.
+3. **Connection (Day 6):** Connect that text output to the Gemini API Key.
+4. **Testing (Day 7):** Go to a restaurant (or print a PDF menu) and test it live.
